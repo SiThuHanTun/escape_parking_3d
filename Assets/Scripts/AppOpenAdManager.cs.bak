@@ -1,0 +1,174 @@
+using GoogleMobileAds.Api;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class AppOpenAdManager
+{
+#if UNITY_ANDROID
+    // Test ad unit ID: ca-app-pub-3940256099942544/3419835294
+    private const string AD_UNIT_ID = "<YOUR_ANDROID_APPOPEN_AD_UNIT_ID>";
+#elif UNITY_IOS
+    // Test ad unit ID: ca-app-pub-3940256099942544/5662855259
+    //private const string AD_UNIT_ID = "ca-app-pub-3434336829324852~6201224802";
+    private const string AD_UNIT_ID = "ca-app-pub-3940256099942544/5662855259";
+#else
+    private const string AD_UNIT_ID = "unexpected_platform";
+#endif
+
+    private static AppOpenAdManager instance;
+
+    public AppOpenAd ad { get; set; }
+
+    public AdRequest request { get; set; }
+
+    public LoadAdError error { get; set; }
+
+    private bool isShowingAd = false;
+
+    // TODO: Add loadTime field
+    private DateTime loadTime;
+
+    private bool IsAdAvailable
+    {
+        get
+        {
+            // TODO: Consider ad expiration
+            return ad != null && (System.DateTime.UtcNow - loadTime).TotalHours < 4;
+        }
+    }
+
+    //private bool IsAdAvailable
+    //{
+    //    get
+    //    {
+    //        return ad != null;
+    //    }
+    //}
+
+    public static AppOpenAdManager Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = new AppOpenAdManager();
+            }
+
+            return instance;
+        }
+    }
+
+    public void LoadAd()
+    {
+        if (IsAdAvailable)
+        {
+            return;
+        }
+
+        AdRequest request = new AdRequest.Builder().Build();
+
+        // Load an app open ad for portrait orientation
+        AppOpenAd.Load(AD_UNIT_ID, ScreenOrientation.Portrait, request, ((appOpenAd, error) =>
+        {
+            if (error != null)
+            {
+                // Handle the error.
+                Debug.LogFormat("Failed to load the ad. (reason: {0})", error.GetMessage());
+                return;
+            }
+
+            // App open ad is loaded.
+            ad = appOpenAd;
+            this.request = request;
+            this.error = error;
+            Debug.Log("App open ad loaded");
+
+            // TODO: Keep track of time when the ad is loaded.
+            loadTime = DateTime.UtcNow;
+
+            //ShowAdIfAvailable(ad, request, error);
+        }));
+    }
+
+    public void ShowAdIfAvailable(AppOpenAd ad, AdRequest request, LoadAdError error)
+    {
+        if (!IsAdAvailable || isShowingAd)
+        {
+            return;
+        }
+
+        //ad.OnAdFullScreenContentClosed += HandleAdDidDismissFullScreenContent;
+        //ad.OnAdFullScreenContentFailed += HandleAdFailedToPresentFullScreenContent;
+        //ad.OnAdFullScreenContentOpened += HandleAdDidPresentFullScreenContent;
+        //ad.OnAdImpressionRecorded += HandleAdDidRecordImpression;
+        //ad.OnAdPaid += HandlePaidEvent;
+
+        ad.OnAdFullScreenContentClosed += () => {
+            Debug.Log("Closed app open ad");
+            // Set the ad to null to indicate that AppOpenAdManager no longer has another ad to show.
+            ad = null;
+            isShowingAd = false;
+            LoadAd();
+        };
+
+        ad.OnAdFullScreenContentFailed += (error) => {
+            Debug.LogFormat("Failed to present the ad (reason: {0})", error.GetMessage());
+            // Set the ad to null to indicate that AppOpenAdManager no longer has another ad to show.
+            ad = null;
+            LoadAd();
+        };
+
+        ad.OnAdFullScreenContentOpened += () => {
+            Debug.Log("Displayed app open ad");
+            isShowingAd = true;
+        };
+
+        ad.OnAdImpressionRecorded += () => {
+            Debug.Log("Recorded ad impression");
+        };
+
+        ad.OnAdPaid += (request) => {
+            Debug.Log("Received paid event.");
+            //Debug.LogFormat("Received paid event. (currency: {0}, value: {1}",
+            //        ad.AdValue.CurrencyCode, ad.AdValue.Value);
+        };
+
+        ad.Show();
+    }
+
+    private void HandleAdDidDismissFullScreenContent(object sender, EventArgs args)
+    {
+        Debug.Log("Closed app open ad");
+        // Set the ad to null to indicate that AppOpenAdManager no longer has another ad to show.
+        ad = null;
+        isShowingAd = false;
+        LoadAd();
+    }
+
+    private void HandleAdFailedToPresentFullScreenContent(object sender, AdErrorEventArgs args)
+    {
+        Debug.LogFormat("Failed to present the ad (reason: {0})", args.AdError.GetMessage());
+        // Set the ad to null to indicate that AppOpenAdManager no longer has another ad to show.
+        ad = null;
+        LoadAd();
+    }
+
+    private void HandleAdDidPresentFullScreenContent(object sender, EventArgs args)
+    {
+        Debug.Log("Displayed app open ad");
+        isShowingAd = true;
+    }
+
+    private void HandleAdDidRecordImpression(object sender, EventArgs args)
+    {
+        Debug.Log("Recorded ad impression");
+    }
+
+    private void HandlePaidEvent(object sender, AdValueEventArgs args)
+    {
+        Debug.LogFormat("Received paid event. (currency: {0}, value: {1}",
+                args.AdValue.CurrencyCode, args.AdValue.Value);
+    }
+}

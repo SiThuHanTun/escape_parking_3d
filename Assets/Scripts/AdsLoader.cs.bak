@@ -1,0 +1,28 @@
+using GoogleMobileAds.Api;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class AdsLoader : MonoBehaviour
+{
+    // Start is called before the first frame update
+    void Start()
+    {
+        
+    }
+
+    public void ShowAds()
+    {
+        //// TODO: Request an app open ad.
+        //MobileAds.Initialize((initStatus) =>
+        //{
+        //    AppOpenAdManager.Instance.LoadAd();
+        //    //AppStateEventNotifier.AppStateChanged += OnAppStateChanged;
+        //    AppOpenAdManager.Instance.ShowAdIfAvailable(AppOpenAdManager.Instance.ad
+        //                                                , AppOpenAdManager.Instance.request
+        //                                                , AppOpenAdManager.Instance.error);
+        //});
+        
+    }
+}
